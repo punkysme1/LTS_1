@@ -1,7 +1,10 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './supabaseTypes'; // Will be generated later if you use Supabase CLI type generation
 
 const env = (import.meta as any).env;
+
+console.log("[DEBUG] SupabaseClient: import.meta.env object:", env);
 
 if (!env) {
   throw new Error(
@@ -15,11 +18,15 @@ if (!env) {
 const supabaseUrl = env.VITE_SUPABASE_URL;
 const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
 
+console.log("[DEBUG] SupabaseClient: VITE_SUPABASE_URL:", supabaseUrl);
+console.log("[DEBUG] SupabaseClient: VITE_SUPABASE_ANON_KEY:", supabaseAnonKey ? `${supabaseAnonKey.substring(0, 10)}... (truncated)` : undefined);
+
+
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
     "Supabase URL (VITE_SUPABASE_URL) and/or Anon Key (VITE_SUPABASE_ANON_KEY) " +
     "are missing from your environment variables. " +
-    "Please check your .env file or build configuration."
+    "Please check your .env file or build configuration. Values received: URL=" + supabaseUrl + ", Key available=" + (!!supabaseAnonKey)
   );
 }
 
