@@ -1,0 +1,136 @@
+
+import { Manuscript } from '../types';
+import { supabase } from './supabaseClient';
+
+const ITEMS_PER_PAGE = 10;
+const MANUSCRIPTS_TABLE = 'manuscripts'; // Define table name
+
+export const getManuscripts = async (page: number = 1, searchQuery: string = ""): Promise<{ data: Manuscript[], totalPages: number, totalItems: number }> => {
+  let query = supabase
+    .from(MANUSCRIPTS_TABLE)
+    .select('*', { count: 'exact' }); // Get total count for pagination
+
+  if (searchQuery) {
+    const lowerCaseQuery = searchQuery.toLowerCase();
+    // Using .or() for multiple field search. Ensure your columns are text searchable.
+    // Supabase needs full-text search setup for complex queries or use ilike for simple ones.
+    query = query.or(
+      `judul.ilike.%${lowerCaseQuery}%,` +
+      `pengarang.ilike.%${lowerCaseQuery}%,` +
+      `kodeInventarisasi.ilike.%${lowerCaseQuery}%,` +
+      `deskripsi.ilike.%${lowerCaseQuery}%`
+    );
+  }
+
+  const { data, error, count } = await query
+    .order('tanggalDitambahkan', { ascending: false }) // Or 'created_at' if that's your column
+    .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
+
+  if (error) {
+    console.error("Error fetching manuscripts:", error);
+    throw error;
+  }
+  
+  const totalItems = count || 0;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  
+  // Ensure data matches Manuscript type, especially array fields
+  const formattedData = data?.map(item => ({
+      ...item,
+      kategori: Array.isArray(item.kategori) ? item.kategori : (item.kategori ? String(item.kategori).split(',') : []),
+      bahasa: Array.isArray(item.bahasa) ? item.bahasa : (item.bahasa ? String(item.bahasa).split(',') : []),
+      aksara: Array.isArray(item.aksara) ? item.aksara : (item.aksara ? String(item.aksara).split(',') : []),
+      imageUrls: Array.isArray(item.imageUrls) ? item.imageUrls : (item.imageUrls ? String(item.imageUrls).split(',') : []),
+  })) || [];
+
+
+  return { data: formattedData as Manuscript[], totalPages, totalItems };
+};
+
+export const getManuscriptById = async (id: string): Promise<Manuscript | undefined> => {
+  const { data, error } = await supabase
+    .from(MANUSCRIPTS_TABLE)
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return undefined; // PostgREST error for " بالضبط صف واحد لم يتم إرجاعه " (exactly one row not returned)
+    console.error("Error fetching manuscript by ID:", error);
+    throw error;
+  }
+  if (!data) return undefined;
+
+  return {
+    ...data,
+    kategori: Array.isArray(data.kategori) ? data.kategori : [],
+    bahasa: Array.isArray(data.bahasa) ? data.bahasa : [],
+    aksara: Array.isArray(data.aksara) ? data.aksara : [],
+    imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : [],
+  } as Manuscript;
+};
+
+export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'tanggalDitambahkan'>): Promise<Manuscript> => {
+  const manuscriptToInsert = {
+    ...manuscript,
+    // Supabase will generate ID if it's a UUID primary key with default.
+    // tanggalDitambahkan can also be set by Supabase with a default value (e.g., now())
+    // If your Supabase table doesn't auto-generate these, you'll need to provide them.
+  };
+
+  const { data, error } = await supabase
+    .from(MANUSCRIPTS_TABLE)
+    .insert([manuscriptToInsert])
+    .select() // To get the inserted row back
+    .single(); // Assuming one row is inserted
+
+  if (error) {
+    console.error("Error adding manuscript:", error);
+    throw error;
+  }
+  if (!data) throw new Error("Failed to add manuscript, no data returned.");
+  
+  return {
+    ...data,
+    kategori: Array.isArray(data.kategori) ? data.kategori : [],
+    bahasa: Array.isArray(data.bahasa) ? data.bahasa : [],
+    aksara: Array.isArray(data.aksara) ? data.aksara : [],
+    imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : [],
+  } as Manuscript;
+};
+
+export const updateManuscript = async (id: string, updates: Partial<Omit<Manuscript, 'id' | 'tanggalDitambahkan'>>): Promise<Manuscript | undefined> => {
+  const { data, error } = await supabase
+    .from(MANUSCRIPTS_TABLE)
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating manuscript:", error);
+    throw error;
+  }
+  if (!data) return undefined;
+
+  return {
+    ...data,
+    kategori: Array.isArray(data.kategori) ? data.kategori : [],
+    bahasa: Array.isArray(data.bahasa) ? data.bahasa : [],
+    aksara: Array.isArray(data.aksara) ? data.aksara : [],
+    imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : [],
+  } as Manuscript;
+};
+
+export const deleteManuscript = async (id: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from(MANUSCRIPTS_TABLE)
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error("Error deleting manuscript:", error);
+    throw error;
+  }
+  return !error;
+};

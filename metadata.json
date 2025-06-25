@@ -1,0 +1,6 @@
+{
+  "name": "Perpustakaan Digital TPPKP Qomaruddin",
+  "description": "A web application to browse and discover digital manuscripts from the TPPKP Qomaruddin library, featuring a catalog, blog, guest book, and more.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
