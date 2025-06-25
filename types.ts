@@ -22,7 +22,8 @@ export interface Manuscript {
   thumbnailUrl: string;
   imageUrls: string[]; // For direct image links in app's carousel
   googleDriveFolderUrl?: string; // For embedding Google Drive folder view
-  tanggalDitambahkan: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface BlogPost {
