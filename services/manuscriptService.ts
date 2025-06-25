@@ -1,4 +1,3 @@
-
 import { Manuscript } from '../types';
 import { supabase } from './supabaseClient';
 
@@ -12,8 +11,7 @@ export const getManuscripts = async (page: number = 1, searchQuery: string = "")
 
   if (searchQuery) {
     const lowerCaseQuery = searchQuery.toLowerCase();
-    // Using .or() for multiple field search. Ensure your columns are text searchable.
-    // Supabase needs full-text search setup for complex queries or use ilike for simple ones.
+    // Menggunakan .or() untuk pencarian di beberapa kolom
     query = query.or(
       `judul.ilike.%${lowerCaseQuery}%,` +
       `pengarang.ilike.%${lowerCaseQuery}%,` +
@@ -22,8 +20,9 @@ export const getManuscripts = async (page: number = 1, searchQuery: string = "")
     );
   }
 
+  // MEMPERBAIKI INI: Menggunakan 'created_at' untuk mengurutkan, bukan 'tanggalDitambahkan'
   const { data, error, count } = await query
-    .order('tanggalDitambahkan', { ascending: false }) // Or 'created_at' if that's your column
+    .order('created_at', { ascending: false })
     .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
   if (error) {
@@ -34,7 +33,7 @@ export const getManuscripts = async (page: number = 1, searchQuery: string = "")
   const totalItems = count || 0;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
   
-  // Ensure data matches Manuscript type, especially array fields
+  // Memastikan data sesuai dengan tipe Manuscript, terutama untuk kolom array
   const formattedData = data?.map(item => ({
       ...item,
       kategori: Array.isArray(item.kategori) ? item.kategori : (item.kategori ? String(item.kategori).split(',') : []),
@@ -55,7 +54,7 @@ export const getManuscriptById = async (id: string): Promise<Manuscript | undefi
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return undefined; // PostgREST error for " بالضبط صف واحد لم يتم إرجاعه " (exactly one row not returned)
+    if (error.code === 'PGRST116') return undefined;
     console.error("Error fetching manuscript by ID:", error);
     throw error;
   }
@@ -70,19 +69,18 @@ export const getManuscriptById = async (id: string): Promise<Manuscript | undefi
   } as Manuscript;
 };
 
-export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'tanggalDitambahkan'>): Promise<Manuscript> => {
+// MEMPERBAIKI INI: Menghapus 'tanggalDitambahkan' dari tipe Omit
+export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created_at' | 'updated_at'>): Promise<Manuscript> => {
   const manuscriptToInsert = {
     ...manuscript,
-    // Supabase will generate ID if it's a UUID primary key with default.
-    // tanggalDitambahkan can also be set by Supabase with a default value (e.g., now())
-    // If your Supabase table doesn't auto-generate these, you'll need to provide them.
+    // Kolom id, created_at, dan updated_at akan diisi secara otomatis oleh Supabase
   };
 
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
     .insert([manuscriptToInsert])
-    .select() // To get the inserted row back
-    .single(); // Assuming one row is inserted
+    .select()
+    .single();
 
   if (error) {
     console.error("Error adding manuscript:", error);
@@ -99,7 +97,8 @@ export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'tanggal
   } as Manuscript;
 };
 
-export const updateManuscript = async (id: string, updates: Partial<Omit<Manuscript, 'id' | 'tanggalDitambahkan'>>): Promise<Manuscript | undefined> => {
+// MEMPERBAIKI INI: Menghapus 'tanggalDitambahkan' dari tipe Omit
+export const updateManuscript = async (id: string, updates: Partial<Omit<Manuscript, 'id' | 'created_at' | 'updated_at'>>): Promise<Manuscript | undefined> => {
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
     .update(updates)
