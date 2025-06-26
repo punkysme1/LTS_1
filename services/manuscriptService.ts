@@ -7,11 +7,10 @@ const MANUSCRIPTS_TABLE = 'manuscripts'; // Define table name
 export const getManuscripts = async (page: number = 1, searchQuery: string = ""): Promise<{ data: Manuscript[], totalPages: number, totalItems: number }> => {
   let query = supabase
     .from(MANUSCRIPTS_TABLE)
-    .select('*', { count: 'exact' }); // Get total count for pagination
+    .select('*', { count: 'exact' });
 
   if (searchQuery) {
     const lowerCaseQuery = searchQuery.toLowerCase();
-    // Menggunakan .or() untuk pencarian di beberapa kolom
     query = query.or(
       `judul.ilike.%${lowerCaseQuery}%,` +
       `pengarang.ilike.%${lowerCaseQuery}%,` +
@@ -32,7 +31,6 @@ export const getManuscripts = async (page: number = 1, searchQuery: string = "")
   const totalItems = count || 0;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
   
-  // Memastikan data sesuai dengan tipe Manuscript, terutama untuk kolom array
   const formattedData = data?.map(item => ({
       ...item,
       kategori: Array.isArray(item.kategori) ? item.kategori : (item.kategori ? String(item.kategori).split(',') : []),
@@ -68,16 +66,23 @@ export const getManuscriptById = async (id: string): Promise<Manuscript | undefi
   } as Manuscript;
 };
 
+// ====================================================================================
+// ==> FUNGSI INI TELAH DIPERBAIKI UNTUK MENGATASI ERROR 'malformed array literal' <==
+// ====================================================================================
 export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created_at' | 'updated_at'>): Promise<Manuscript> => {
+  
+  // Membersihkan data sebelum dikirim ke Supabase
+  // Ini memastikan bahwa kolom array yang kosong akan dikirim sebagai [] (array kosong),
+  // bukan sebagai "" (string kosong) atau nilai "falsy" lainnya.
   const manuscriptToInsert = {
     ...manuscript,
-    // Kolom id, created_at, dan updated_at akan diisi secara otomatis oleh Supabase
+    kategori: manuscript.kategori && manuscript.kategori.length > 0 ? manuscript.kategori : [],
+    bahasa: manuscript.bahasa && manuscript.bahasa.length > 0 ? manuscript.bahasa : [],
+    aksara: manuscript.aksara && manuscript.aksara.length > 0 ? manuscript.aksara : [],
+    imageUrls: manuscript.imageUrls && manuscript.imageUrls.length > 0 ? manuscript.imageUrls : [],
   };
 
-  // =================================================================
-  // ==> LOG UNTUK DEBUGGING DITAMBAHKAN DI SINI <==
-  console.log("Data yang akan di-insert:", manuscriptToInsert);
-  // =================================================================
+  console.log("Data yang akan di-insert (setelah dibersihkan):", manuscriptToInsert);
 
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
@@ -86,7 +91,6 @@ export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created
     .single();
 
   if (error) {
-    // ==> LOG ERROR JUGA DIPERJELAS DI SINI <==
     console.error("Supabase insert error:", error);
     throw error;
   }
