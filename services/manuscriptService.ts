@@ -43,6 +43,9 @@ export const getManuscripts = async (page: number = 1, searchQuery: string = "")
   return { data: formattedData as Manuscript[], totalPages, totalItems };
 };
 
+// ======================================================================
+// ==> BAGIAN YANG HILANG DITAMBAHKAN KEMBALI DI SINI <==
+// ======================================================================
 export const getManuscriptById = async (id: string): Promise<Manuscript | undefined> => {
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
@@ -51,55 +54,37 @@ export const getManuscriptById = async (id: string): Promise<Manuscript | undefi
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return undefined;
+    if (error.code === 'PGRST116') return undefined; // Data tidak ditemukan
     console.error("Error fetching manuscript by ID:", error);
     throw error;
   }
   if (!data) return undefined;
 
-  return {
+  // Logika pemformatan yang konsisten untuk memastikan data array tidak hilang
+  const formattedData = {
     ...data,
-    kategori: Array.isArray(data.kategori) ? data.kategori : [],
-    bahasa: Array.isArray(data.bahasa) ? data.bahasa : [],
-    aksara: Array.isArray(data.aksara) ? data.aksara : [],
-    imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : [],
-  } as Manuscript;
+    kategori: Array.isArray(data.kategori) ? data.kategori : (data.kategori ? String(data.kategori).split(',') : []),
+    bahasa: Array.isArray(data.bahasa) ? data.bahasa : (data.bahasa ? String(data.bahasa).split(',') : []),
+    aksara: Array.isArray(data.aksara) ? data.aksara : (data.aksara ? String(data.aksara).split(',') : []),
+    imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : (data.imageUrls ? String(data.imageUrls).split(',') : []),
+  };
+
+  return formattedData as Manuscript;
 };
 
 export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created_at' | 'updated_at'>): Promise<Manuscript> => {
-  
-  // PERBAIKAN: Membuat ulang objek secara eksplisit untuk memastikan kebersihan data
-  const cleanManuscript = {
-    kodeInventarisasi: manuscript.kodeInventarisasi,
-    kodeDigital: manuscript.kodeDigital,
-    judul: manuscript.judul,
-    pengarang: manuscript.pengarang,
-    penyalin: manuscript.penyalin,
-    tahunPenyalinan: manuscript.tahunPenyalinan,
-    statusKetersediaan: manuscript.statusKetersediaan,
-    kelengkapan: manuscript.kelengkapan,
-    keterbacaan: manuscript.keterbacaan,
-    jumlahHalaman: manuscript.jumlahHalaman,
-    tinta: manuscript.tinta,
-    kondisiNaskah: manuscript.kondisiNaskah,
-    deskripsi: manuscript.deskripsi,
-    kolofon: manuscript.kolofon,
-    catatan: manuscript.catatan,
-    thumbnailUrl: manuscript.thumbnailUrl,
-    googleDriveFolderUrl: manuscript.googleDriveFolderUrl,
-    
-    // Memastikan kolom array dikirim dengan benar, bahkan jika kosong
-    kategori: Array.isArray(manuscript.kategori) ? manuscript.kategori : [],
-    bahasa: Array.isArray(manuscript.bahasa) ? manuscript.bahasa : [],
-    aksara: Array.isArray(manuscript.aksara) ? manuscript.aksara : [],
-    imageUrls: Array.isArray(manuscript.imageUrls) ? manuscript.imageUrls : [],
+  // Logika pembersihan data untuk mencegah error 'malformed array literal'
+  const manuscriptToInsert = {
+    ...manuscript,
+    kategori: manuscript.kategori && manuscript.kategori.length > 0 ? manuscript.kategori : [],
+    bahasa: manuscript.bahasa && manuscript.bahasa.length > 0 ? manuscript.bahasa : [],
+    aksara: manuscript.aksara && manuscript.aksara.length > 0 ? manuscript.aksara : [],
+    imageUrls: manuscript.imageUrls && manuscript.imageUrls.length > 0 ? manuscript.imageUrls : [],
   };
-
-  console.log("Data manuskrip yang akan di-insert (setelah dibersihkan):", cleanManuscript);
 
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
-    .insert([cleanManuscript])
+    .insert([manuscriptToInsert])
     .select()
     .single();
 
@@ -109,19 +94,24 @@ export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created
   }
   if (!data) throw new Error("Failed to add manuscript, no data returned.");
   
-  return {
-    ...data,
-    kategori: Array.isArray(data.kategori) ? data.kategori : [],
-    bahasa: Array.isArray(data.bahasa) ? data.bahasa : [],
-    aksara: Array.isArray(data.aksara) ? data.aksara : [],
-    imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : [],
-  } as Manuscript;
+  return data as Manuscript;
 };
 
 export const updateManuscript = async (id: string, updates: Partial<Omit<Manuscript, 'id' | 'created_at' | 'updated_at'>>): Promise<Manuscript | undefined> => {
+  
+  const updatesToSubmit = { ...updates };
+  const arrayFields: (keyof typeof updates)[] = ['kategori', 'bahasa', 'aksara', 'imageUrls'];
+
+  arrayFields.forEach(field => {
+    if (updates[field] !== undefined) {
+      const value = updates[field] as any;
+      (updatesToSubmit as any)[field] = value && value.length > 0 ? value : [];
+    }
+  });
+
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
-    .update(updates)
+    .update(updatesToSubmit)
     .eq('id', id)
     .select()
     .single();
@@ -132,13 +122,7 @@ export const updateManuscript = async (id: string, updates: Partial<Omit<Manuscr
   }
   if (!data) return undefined;
 
-  return {
-    ...data,
-    kategori: Array.isArray(data.kategori) ? data.kategori : [],
-    bahasa: Array.isArray(data.bahasa) ? data.bahasa : [],
-    aksara: Array.isArray(data.aksara) ? data.aksara : [],
-    imageUrls: Array.isArray(data.imageUrls) ? data.imageUrls : [],
-  } as Manuscript;
+  return data as Manuscript;
 };
 
 export const deleteManuscript = async (id: string): Promise<boolean> => {
