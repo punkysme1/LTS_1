@@ -1,19 +1,17 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
-
+    
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "isolatedModules": true,
-    "moduleDetection": "force",
     "noEmit": true,
-    "allowJs": true,
+    
+    // Pengaturan JSX Anda, ini sudah benar.
     "jsx": "react-jsx",
 
     /* Linting */
@@ -21,10 +19,21 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
 
+    /* Pengaturan Tambahan dari File Anda */
+    "experimentalDecorators": true, // Tetap dipertahankan jika Anda menggunakannya
+    "allowJs": true,
+    
+    // PENTING: Diperlukan agar 'paths' berfungsi dengan benar
+    "baseUrl": ".",
     "paths": {
-      "@/*" :  ["./*"]
+      "@/*": [
+        "./src/*" // Path yang lebih spesifik biasanya lebih baik
+      ]
     }
-  }
+  },
+  // PENTING: Memberitahu TypeScript untuk hanya memeriksa file di dalam folder src
+  "include": ["src"], 
+  // PENTING: Menghubungkan ke konfigurasi khusus Vite/Node.js
+  "references": [{ "path": "./tsconfig.node.json" }] 
 }
