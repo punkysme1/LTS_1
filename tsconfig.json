@@ -31,9 +31,4 @@
         "./src/*" // Path yang lebih spesifik biasanya lebih baik
       ]
     }
-  },
-  // PENTING: Memberitahu TypeScript untuk hanya memeriksa file di dalam folder src
-  "include": ["src"], 
-  // PENTING: Menghubungkan ke konfigurasi khusus Vite/Node.js
-  "references": [{ "path": "./tsconfig.node.json" }] 
 }
