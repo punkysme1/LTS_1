@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Manuscript } from '../types';
@@ -6,6 +5,7 @@ import { getManuscriptById } from '../services/manuscriptService';
 import ImageCarousel from '../components/ImageCarousel';
 import LoadingSpinner from '../components/LoadingSpinner';
 
+// Komponen helper untuk menampilkan satu bagian detail
 const DetailSection: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className }) => (
   <section className={`mb-6 ${className}`}>
     <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-500 mb-2 border-b border-gray-200 dark:border-gray-700 pb-1">{title}</h2>
@@ -13,23 +13,28 @@ const DetailSection: React.FC<{ title: string; children: React.ReactNode; classN
   </section>
 );
 
+// Komponen helper untuk menampilkan satu baris data (label dan value)
 const DetailEntry: React.FC<{ label: string; value?: string | number | string[] }> = ({ label, value }) => {
+  // Jangan tampilkan jika value tidak ada atau array kosong
   if (!value || (Array.isArray(value) && value.length === 0)) return null;
+  
   return (
     <p>
       <span className="font-medium text-gray-600 dark:text-gray-400">{label}:</span>
+      {/* Tampilkan data array sebagai string yang dipisahkan koma */}
       <span className="ml-2">{Array.isArray(value) ? value.join(', ') : value}</span>
     </p>
   );
 };
 
+// Fungsi helper untuk mengekstrak ID folder dari URL Google Drive
 const getGoogleDriveFolderId = (url: string): string | null => {
   if (!url) return null;
   const match = url.match(/folders\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : null;
 };
 
-
+// Komponen Utama Halaman Detail
 const ManuscriptDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [manuscript, setManuscript] = useState<Manuscript | null>(null);
@@ -44,6 +49,7 @@ const ManuscriptDetailPage: React.FC = () => {
           setManuscript(data || null);
         } catch (error) {
           console.error("Failed to fetch manuscript:", error);
+          setManuscript(null); // Set ke null jika ada error
         } finally {
           setIsLoading(false);
         }
@@ -52,6 +58,7 @@ const ManuscriptDetailPage: React.FC = () => {
     }
   }, [id]);
 
+  // Gunakan useMemo agar URL embed tidak dihitung ulang pada setiap render
   const googleDriveEmbedUrl = useMemo(() => {
     if (manuscript?.googleDriveFolderUrl) {
       const folderId = getGoogleDriveFolderId(manuscript.googleDriveFolderUrl);
@@ -79,7 +86,7 @@ const ManuscriptDetailPage: React.FC = () => {
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xl rounded-lg p-4 md:p-6">
-      {/* Header Section */}
+      {/* Header */}
       <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
         <h1 className="text-3xl md:text-4xl font-bold text-primary-700 dark:text-primary-300 mb-2">{manuscript.judul}</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400">
@@ -91,11 +98,11 @@ const ManuscriptDetailPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Main Content: Thumbnail and Core Details */}
+      {/* Konten Utama */}
       <div className="flex flex-col md:flex-row gap-6 mb-8">
         <div className="md:w-1/3 flex-shrink-0">
           <img 
-            src={manuscript.thumbnailUrl || `https://picsum.photos/seed/${manuscript.id}/400/600`} 
+            src={manuscript.thumbnailUrl || `https://i.pravatar.cc/400?u=${manuscript.id}`} 
             alt={`Thumbnail ${manuscript.judul}`} 
             className="w-full h-auto rounded-lg shadow-md object-cover md:max-h-[500px]" 
           />
@@ -122,7 +129,7 @@ const ManuscriptDetailPage: React.FC = () => {
         </div>
       </div>
       
-      {/* Detailed Information Sections */}
+      {/* Informasi Detail Lanjutan */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-8">
         <DetailSection title="Kondisi & Status">
           <DetailEntry label="Kondisi Naskah" value={manuscript.kondisiNaskah} />
@@ -134,48 +141,32 @@ const ManuscriptDetailPage: React.FC = () => {
         {(manuscript.kolofon || manuscript.catatan) && (
           <DetailSection title="Catatan Tambahan">
             {manuscript.kolofon && (
-                <div className="mb-3">
-                    <h3 className="font-medium text-gray-600 dark:text-gray-400">Kolofon:</h3>
-                    <p className="whitespace-pre-line text-sm">{manuscript.kolofon}</p>
-                </div>
+              <div className="mb-3">
+                  <h3 className="font-medium text-gray-600 dark:text-gray-400">Kolofon:</h3>
+                  <p className="whitespace-pre-line text-sm">{manuscript.kolofon}</p>
+              </div>
             )}
             {manuscript.catatan && (
-                <div>
-                    <h3 className="font-medium text-gray-600 dark:text-gray-400">Catatan Internal:</h3>
-                    <p className="whitespace-pre-line text-sm">{manuscript.catatan}</p>
-                </div>
+              <div>
+                  <h3 className="font-medium text-gray-600 dark:text-gray-400">Catatan Internal:</h3>
+                  <p className="whitespace-pre-line text-sm">{manuscript.catatan}</p>
+              </div>
             )}
           </DetailSection>
         )}
       </div>
       
-      {/* Google Drive Folder Embed */}
+      {/* Embed Google Drive */}
       {googleDriveEmbedUrl && (
         <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">Pratinjau Isi Buku (via Google Drive)</h2>
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">Pratinjau Isi Naskah</h2>
           <div className="aspect-w-16 aspect-h-9 md:aspect-h-12 lg:aspect-h-10 border dark:border-gray-700 rounded-lg overflow-hidden shadow-lg">
-            <iframe
-              src={googleDriveEmbedUrl}
-              className="w-full h-full min-h-[500px] md:min-h-[600px]"
-              allow="fullscreen"
-              title={`Pratinjau Folder Google Drive untuk ${manuscript.judul}`}
-              aria-label={`Pratinjau Folder Google Drive untuk ${manuscript.judul}`}
-            ></iframe>
+            <iframe src={googleDriveEmbedUrl} className="w-full h-full min-h-[600px]" allow="fullscreen" title={`Pratinjau ${manuscript.judul}`}></iframe>
           </div>
-           <p className="text-xs text-center mt-2 text-gray-500 dark:text-gray-400">
-            Folder Google Drive ini dibuka dalam mode sematan. Untuk pengalaman penuh, buka 
-            <a 
-                href={manuscript.googleDriveFolderUrl} 
-                target="_blank" rel="noopener noreferrer" 
-                className="text-primary-600 hover:underline dark:text-primary-400 ml-1"
-            >
-                langsung di Google Drive
-            </a>.
-          </p>
         </div>
       )}
 
-      {/* Image Carousel for specific image URLs */}
+      {/* Galeri Gambar */}
       {manuscript.imageUrls && manuscript.imageUrls.length > 0 && (
         <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">Galeri Gambar Pilihan</h2>
@@ -183,7 +174,7 @@ const ManuscriptDetailPage: React.FC = () => {
         </div>
       )}
 
-
+      {/* Tombol Kembali */}
       <div className="mt-12 text-center">
         <Link 
           to="/catalog" 
