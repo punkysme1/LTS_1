@@ -9,7 +9,6 @@ export const getBlogPosts = async (page: number = 1): Promise<{ data: BlogPost[]
   const { data, error, count } = await supabase
     .from(BLOG_POSTS_TABLE)
     .select('*', { count: 'exact' })
-    // DIGANTI: 'date' menjadi 'created_at'
     .order('created_at', { ascending: false })
     .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
@@ -27,8 +26,8 @@ export const getBlogPosts = async (page: number = 1): Promise<{ data: BlogPost[]
         .from(COMMENTS_TABLE)
         .select('*')
         .eq('post_id', post.id)
-        .eq('isApproved', true)
-        // DIGANTI: 'date' menjadi 'created_at'
+        // PERBAIKAN: Menggunakan is_approved sesuai petunjuk error
+        .eq('is_approved', true) 
         .order('created_at', { ascending: true });
       
       if (commentsError) {
@@ -60,7 +59,6 @@ export const getBlogPostById = async (id: string): Promise<BlogPost | undefined>
     .from(COMMENTS_TABLE)
     .select('*')
     .eq('post_id', postData.id)
-    // DIGANTI: 'date' menjadi 'created_at'
     .order('created_at', { ascending: true });
 
   if (commentsError) {
@@ -70,7 +68,6 @@ export const getBlogPostById = async (id: string): Promise<BlogPost | undefined>
   return { ...postData, comments: commentsData || [] } as BlogPost;
 };
 
-// DIGANTI: Omit 'date' menjadi 'created_at' dan 'updated_at'
 export const addBlogPost = async (post: Omit<BlogPost, 'id' | 'created_at' | 'updated_at' | 'comments'>): Promise<BlogPost> => {
   const { data, error } = await supabase
     .from(BLOG_POSTS_TABLE)
@@ -86,7 +83,6 @@ export const addBlogPost = async (post: Omit<BlogPost, 'id' | 'created_at' | 'up
   return { ...data, comments: [] } as BlogPost;
 };
 
-// DIGANTI: Omit 'date' menjadi 'created_at' dan 'updated_at'
 export const updateBlogPost = async (id: string, updates: Partial<Omit<BlogPost, 'id' | 'created_at' | 'updated_at' | 'comments'>>): Promise<BlogPost | undefined> => {
   const { data, error } = await supabase
     .from(BLOG_POSTS_TABLE)
@@ -123,12 +119,12 @@ export const deleteBlogPost = async (id: string): Promise<boolean> => {
   return !error;
 };
 
-// DIGANTI: Omit 'date' menjadi 'created_at' dan 'updated_at'
-export const addComment = async (postId: string, comment: Omit<Comment, 'id' | 'created_at' | 'updated_at' | 'isApproved' | 'post_id'>): Promise<Comment | undefined> => {
+export const addComment = async (postId: string, comment: Omit<Comment, 'id' | 'created_at' | 'updated_at' | 'is_approved' | 'post_id'>): Promise<Comment | undefined> => {
   const commentData = {
     ...comment,
     post_id: postId,
-    isApproved: false,
+    // PERBAIKAN: Menggunakan is_approved sesuai nama kolom database
+    is_approved: false, 
   };
   const { data, error } = await supabase
     .from(COMMENTS_TABLE)
@@ -146,7 +142,8 @@ export const addComment = async (postId: string, comment: Omit<Comment, 'id' | '
 export const approveComment = async (commentId: string): Promise<boolean> => {
   const { error } = await supabase
     .from(COMMENTS_TABLE)
-    .update({ isApproved: true })
+    // PERBAIKAN: Menggunakan is_approved sesuai nama kolom database
+    .update({ is_approved: true })
     .eq('id', commentId);
 
   if (error) {
@@ -161,7 +158,6 @@ export const getAllCommentsForPost = async (postId: string): Promise<Comment[]> 
         .from(COMMENTS_TABLE)
         .select('*')
         .eq('post_id', postId)
-        // DIGANTI: 'date' menjadi 'created_at'
         .order('created_at', { ascending: false });
     if (error) {
         console.error("Error fetching all comments for post:", error);
