@@ -2,7 +2,7 @@ import { Manuscript } from '../types';
 import { supabase } from './supabaseClient';
 
 const ITEMS_PER_PAGE = 10;
-const MANUSCRIPTS_TABLE = 'manuscripts'; // Define table name
+const MANUSCRIPTS_TABLE = 'manuscripts';
 
 export const getManuscripts = async (page: number = 1, searchQuery: string = ""): Promise<{ data: Manuscript[], totalPages: number, totalItems: number }> => {
   let query = supabase
@@ -66,27 +66,40 @@ export const getManuscriptById = async (id: string): Promise<Manuscript | undefi
   } as Manuscript;
 };
 
-// ====================================================================================
-// ==> FUNGSI INI TELAH DIPERBAIKI UNTUK MENGATASI ERROR 'malformed array literal' <==
-// ====================================================================================
 export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created_at' | 'updated_at'>): Promise<Manuscript> => {
   
-  // Membersihkan data sebelum dikirim ke Supabase
-  // Ini memastikan bahwa kolom array yang kosong akan dikirim sebagai [] (array kosong),
-  // bukan sebagai "" (string kosong) atau nilai "falsy" lainnya.
-  const manuscriptToInsert = {
-    ...manuscript,
-    kategori: manuscript.kategori && manuscript.kategori.length > 0 ? manuscript.kategori : [],
-    bahasa: manuscript.bahasa && manuscript.bahasa.length > 0 ? manuscript.bahasa : [],
-    aksara: manuscript.aksara && manuscript.aksara.length > 0 ? manuscript.aksara : [],
-    imageUrls: manuscript.imageUrls && manuscript.imageUrls.length > 0 ? manuscript.imageUrls : [],
+  // PERBAIKAN: Membuat ulang objek secara eksplisit untuk memastikan kebersihan data
+  const cleanManuscript = {
+    kodeInventarisasi: manuscript.kodeInventarisasi,
+    kodeDigital: manuscript.kodeDigital,
+    judul: manuscript.judul,
+    pengarang: manuscript.pengarang,
+    penyalin: manuscript.penyalin,
+    tahunPenyalinan: manuscript.tahunPenyalinan,
+    statusKetersediaan: manuscript.statusKetersediaan,
+    kelengkapan: manuscript.kelengkapan,
+    keterbacaan: manuscript.keterbacaan,
+    jumlahHalaman: manuscript.jumlahHalaman,
+    tinta: manuscript.tinta,
+    kondisiNaskah: manuscript.kondisiNaskah,
+    deskripsi: manuscript.deskripsi,
+    kolofon: manuscript.kolofon,
+    catatan: manuscript.catatan,
+    thumbnailUrl: manuscript.thumbnailUrl,
+    googleDriveFolderUrl: manuscript.googleDriveFolderUrl,
+    
+    // Memastikan kolom array dikirim dengan benar, bahkan jika kosong
+    kategori: Array.isArray(manuscript.kategori) ? manuscript.kategori : [],
+    bahasa: Array.isArray(manuscript.bahasa) ? manuscript.bahasa : [],
+    aksara: Array.isArray(manuscript.aksara) ? manuscript.aksara : [],
+    imageUrls: Array.isArray(manuscript.imageUrls) ? manuscript.imageUrls : [],
   };
 
-  console.log("Data yang akan di-insert (setelah dibersihkan):", manuscriptToInsert);
+  console.log("Data manuskrip yang akan di-insert (setelah dibersihkan):", cleanManuscript);
 
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
-    .insert([manuscriptToInsert])
+    .insert([cleanManuscript])
     .select()
     .single();
 
