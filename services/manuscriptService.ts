@@ -20,7 +20,6 @@ export const getManuscripts = async (page: number = 1, searchQuery: string = "")
     );
   }
 
-  // MEMPERBAIKI INI: Menggunakan 'created_at' untuk mengurutkan, bukan 'tanggalDitambahkan'
   const { data, error, count } = await query
     .order('created_at', { ascending: false })
     .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
@@ -69,12 +68,16 @@ export const getManuscriptById = async (id: string): Promise<Manuscript | undefi
   } as Manuscript;
 };
 
-// MEMPERBAIKI INI: Menghapus 'tanggalDitambahkan' dari tipe Omit
 export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created_at' | 'updated_at'>): Promise<Manuscript> => {
   const manuscriptToInsert = {
     ...manuscript,
     // Kolom id, created_at, dan updated_at akan diisi secara otomatis oleh Supabase
   };
+
+  // =================================================================
+  // ==> LOG UNTUK DEBUGGING DITAMBAHKAN DI SINI <==
+  console.log("Data yang akan di-insert:", manuscriptToInsert);
+  // =================================================================
 
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
@@ -83,7 +86,8 @@ export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created
     .single();
 
   if (error) {
-    console.error("Error adding manuscript:", error);
+    // ==> LOG ERROR JUGA DIPERJELAS DI SINI <==
+    console.error("Supabase insert error:", error);
     throw error;
   }
   if (!data) throw new Error("Failed to add manuscript, no data returned.");
@@ -97,7 +101,6 @@ export const addManuscript = async (manuscript: Omit<Manuscript, 'id' | 'created
   } as Manuscript;
 };
 
-// MEMPERBAIKI INI: Menghapus 'tanggalDitambahkan' dari tipe Omit
 export const updateManuscript = async (id: string, updates: Partial<Omit<Manuscript, 'id' | 'created_at' | 'updated_at'>>): Promise<Manuscript | undefined> => {
   const { data, error } = await supabase
     .from(MANUSCRIPTS_TABLE)
